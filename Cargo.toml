@@ -15,12 +15,7 @@ tempdir = "0.3.7"
 clap = "2.24.2"
 log = "0.3.8"
 env_logger = "0.4.3"
-windows-acl = { path = "../windows-acl" }
-
-[dependencies.winapi]
-git = "https://github.com/yying/winapi-rs"
-branch = "features/procthreadattrs"
-features = [
-    "errhandlingapi", "fileapi", "handleapi", "inaddr", "minwinbase", "minwindef", "namedpipeapi", "securitybaseapi", 
-    "synchapi", "userenv", "winnt", "winsock2", "winbase", "winuser", "ws2def", "ws2tcpip"
-]
+windows-acl = "0.2"
+winapi = { version = "0.3", features = [
+    'synchapi', 'userenv', 'winuser', 'ws2def', 'ws2tcpip', 'winsock2'
+]}

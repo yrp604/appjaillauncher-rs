@@ -22,7 +22,7 @@ use winapi::um::userenv::{
     CreateAppContainerProfile, DeleteAppContainerProfile, DeriveAppContainerSidFromAppContainerName
 };
 use winapi::um::winbase::{
-    EXTENDED_STARTUPINFO_PRESENT, HANDLE_FLAG_INHERIT, LPSTARTUPINFOEXW, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, 
+    EXTENDED_STARTUPINFO_PRESENT, HANDLE_FLAG_INHERIT, LPSTARTUPINFOEXW,
     STARTF_USESHOWWINDOW, STARTF_USESTDHANDLES, STARTUPINFOEXW
 };
 use winapi::um::winnt::{
@@ -204,9 +204,12 @@ impl Profile {
             }
 
             if unsafe {
+                // https://github.com/mozilla/positron/blob/master/security/sandbox/chromium-shim/base/win/sdkdecls.h#L32
+                const PROC_THREAD_ATTRIBUTE_NUMBER: usize = 0x0000FFFF;
+                const PROC_THREAD_ATTRIBUTE_INPUT: usize = 0x00020000;
                 UpdateProcThreadAttribute(attrBuf.as_mut_ptr() as LPPROC_THREAD_ATTRIBUTE_LIST, 
                                           0, 
-                                          PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, 
+                                          9 & PROC_THREAD_ATTRIBUTE_NUMBER | PROC_THREAD_ATTRIBUTE_INPUT, // PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES
                                           mem::transmute::<PSECURITY_CAPABILITIES, LPVOID>(&mut capabilities), 
                                           mem::size_of::<SECURITY_CAPABILITIES>() as SIZE_T, 
                                           NULL as PVOID, 
