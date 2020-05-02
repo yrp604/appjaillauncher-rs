@@ -14,7 +14,7 @@ widestring = "0.4"
 tempdir = "0.3"
 clap = "2"
 log = "0.4"
-env_logger = "0.4.3"
+flexi_logger = "0.15"
 windows-acl = "0.2"
 winapi = { version = "0.3", features = [
     'synchapi', 'userenv', 'winuser', 'ws2def', 'ws2tcpip', 'winsock2'

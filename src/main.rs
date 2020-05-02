@@ -1,7 +1,6 @@
 #![cfg(windows)]
 
 extern crate clap;
-extern crate env_logger;
 extern crate field_offset;
 extern crate libc;
 
@@ -316,7 +315,7 @@ fn main() {
                      .help("The path to the \"key\" file that contains the challenge solution token")))
         .get_matches();
 
-    if let Err(_) = env_logger::init() {
+    if flexi_logger::Logger::with_env().start().is_err() {
         println!("FATAL: failed to initialize env_logger!");
         process::exit(-1);
     }
