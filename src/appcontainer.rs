@@ -6,40 +6,43 @@
 #[allow(unused_imports)]
 use log::*;
 
-use winapi::shared::basetsd::{SIZE_T, PSIZE_T};
+use winapi::shared::basetsd::{PSIZE_T, SIZE_T};
 use winapi::shared::minwindef::{DWORD, LPBYTE, LPVOID, WORD};
-use winapi::shared::ntdef::{PVOID, NULL};
-use winapi::shared::winerror::{ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND, ERROR_SUCCESS, HRESULT_FROM_WIN32};
-use winapi::um::errhandlingapi::{GetLastError};
-use winapi::um::handleapi::{INVALID_HANDLE_VALUE, CloseHandle, SetHandleInformation};
-use winapi::um::minwinbase::{LPSECURITY_ATTRIBUTES};
-use winapi::um::processthreadsapi::{
-    LPPROC_THREAD_ATTRIBUTE_LIST, LPSTARTUPINFOW, PPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION, STARTUPINFOW, 
-    CreateProcessW, InitializeProcThreadAttributeList, UpdateProcThreadAttribute
+use winapi::shared::ntdef::{NULL, PVOID};
+use winapi::shared::winerror::{
+    ERROR_ALREADY_EXISTS, ERROR_FILE_NOT_FOUND, ERROR_SUCCESS, HRESULT_FROM_WIN32,
 };
-use winapi::um::securitybaseapi::{FreeSid};
+use winapi::um::errhandlingapi::GetLastError;
+use winapi::um::handleapi::{CloseHandle, SetHandleInformation, INVALID_HANDLE_VALUE};
+use winapi::um::minwinbase::LPSECURITY_ATTRIBUTES;
+use winapi::um::processthreadsapi::{
+    CreateProcessW, InitializeProcThreadAttributeList, UpdateProcThreadAttribute,
+    LPPROC_THREAD_ATTRIBUTE_LIST, LPSTARTUPINFOW, PPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
+    STARTUPINFOW,
+};
+use winapi::um::securitybaseapi::FreeSid;
 use winapi::um::userenv::{
-    CreateAppContainerProfile, DeleteAppContainerProfile, DeriveAppContainerSidFromAppContainerName
+    CreateAppContainerProfile, DeleteAppContainerProfile, DeriveAppContainerSidFromAppContainerName,
 };
 use winapi::um::winbase::{
-    EXTENDED_STARTUPINFO_PRESENT, HANDLE_FLAG_INHERIT, LPSTARTUPINFOEXW,
-    STARTF_USESHOWWINDOW, STARTF_USESTDHANDLES, STARTUPINFOEXW
+    EXTENDED_STARTUPINFO_PRESENT, HANDLE_FLAG_INHERIT, LPSTARTUPINFOEXW, STARTF_USESHOWWINDOW,
+    STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 use winapi::um::winnt::{
-    HANDLE, HRESULT, LPWSTR, PSECURITY_CAPABILITIES, PSID, PSID_AND_ATTRIBUTES, SE_GROUP_ENABLED, 
-    SECURITY_CAPABILITIES, SID_AND_ATTRIBUTES
+    HANDLE, HRESULT, LPWSTR, PSECURITY_CAPABILITIES, PSID, PSID_AND_ATTRIBUTES,
+    SECURITY_CAPABILITIES, SE_GROUP_ENABLED, SID_AND_ATTRIBUTES,
 };
-use winapi::um::winuser::{SW_HIDE};
+use winapi::um::winuser::SW_HIDE;
 
-use windows_acl::helper::{string_to_sid, sid_to_string};
+use windows_acl::helper::{sid_to_string, string_to_sid};
 
-use crate::utils::{HandlePtr};
+use crate::utils::HandlePtr;
 
-use std::path::Path;
 use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
 use std::iter::once;
 use std::mem;
+use std::os::windows::ffi::OsStrExt;
+use std::path::Path;
 
 #[allow(dead_code)]
 pub struct Profile {
@@ -54,10 +57,7 @@ pub struct Profile {
 impl Profile {
     pub fn new(profile: &str, path: &str) -> Result<Profile, HRESULT> {
         let mut pSid: PSID = NULL as PSID;
-        let profile_name: Vec<u16> = OsStr::new(profile)
-            .encode_wide()
-            .chain(once(0))
-            .collect();
+        let profile_name: Vec<u16> = OsStr::new(profile).encode_wide().chain(once(0)).collect();
 
         let path_obj = Path::new(path);
         if !path_obj.exists() || !path_obj.is_file() {
@@ -65,12 +65,14 @@ impl Profile {
         }
 
         let mut hr = unsafe {
-            CreateAppContainerProfile(profile_name.as_ptr(),
-                                      profile_name.as_ptr(),
-                                      profile_name.as_ptr(),
-                                      NULL as PSID_AND_ATTRIBUTES,
-                                      0 as DWORD,
-                                      &mut pSid)
+            CreateAppContainerProfile(
+                profile_name.as_ptr(),
+                profile_name.as_ptr(),
+                profile_name.as_ptr(),
+                NULL as PSID_AND_ATTRIBUTES,
+                0 as DWORD,
+                &mut pSid,
+            )
         };
 
         if hr == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS) {
@@ -90,24 +92,20 @@ impl Profile {
         unsafe { FreeSid(pSid) };
 
         Ok(Profile {
-               profile: profile.to_string(),
-               childPath: path.to_string(),
-               outboundNetwork: true,
-               debug: false,
-               sid: string_sid,
-           })
+            profile: profile.to_string(),
+            childPath: path.to_string(),
+            outboundNetwork: true,
+            debug: false,
+            sid: string_sid,
+        })
     }
 
     pub fn remove(profile: &str) -> bool {
-        let profile_name: Vec<u16> = OsStr::new(profile)
-            .encode_wide()
-            .chain(once(0))
-            .collect();
+        let profile_name: Vec<u16> = OsStr::new(profile).encode_wide().chain(once(0)).collect();
         let mut pSid: PSID = 0 as PSID;
 
-        let mut hr = unsafe {
-            DeriveAppContainerSidFromAppContainerName(profile_name.as_ptr(), &mut pSid)
-        };
+        let mut hr =
+            unsafe { DeriveAppContainerSidFromAppContainerName(profile_name.as_ptr(), &mut pSid) };
 
         if hr == (ERROR_SUCCESS as HRESULT) {
             hr = unsafe { DeleteAppContainerProfile(profile_name.as_ptr()) };
@@ -178,28 +176,35 @@ impl Profile {
 
             let mut listSize: SIZE_T = 0;
             if unsafe {
-                   InitializeProcThreadAttributeList(NULL as LPPROC_THREAD_ATTRIBUTE_LIST,
-                                                     1,
-                                                     0,
-                                                     &mut listSize)
-               } !=
-               0 {
-                debug!("InitializeProcThreadAttributeList failed: GLE={:}",
-                       unsafe { GetLastError() });
+                InitializeProcThreadAttributeList(
+                    NULL as LPPROC_THREAD_ATTRIBUTE_LIST,
+                    1,
+                    0,
+                    &mut listSize,
+                )
+            } != 0
+            {
+                debug!(
+                    "InitializeProcThreadAttributeList failed: GLE={:}",
+                    unsafe { GetLastError() }
+                );
                 return Err(unsafe { GetLastError() });
             }
 
             attrBuf = Vec::with_capacity(listSize as usize);
             if unsafe {
-                   InitializeProcThreadAttributeList(attrBuf.as_mut_ptr() as
-                                                     LPPROC_THREAD_ATTRIBUTE_LIST,
-                                                     1,
-                                                     0,
-                                                     &mut listSize)
-               } ==
-               0 {
-                debug!("InitializeProcThreadAttributeList failed: GLE={:}",
-                       unsafe { GetLastError() });
+                InitializeProcThreadAttributeList(
+                    attrBuf.as_mut_ptr() as LPPROC_THREAD_ATTRIBUTE_LIST,
+                    1,
+                    0,
+                    &mut listSize,
+                )
+            } == 0
+            {
+                debug!(
+                    "InitializeProcThreadAttributeList failed: GLE={:}",
+                    unsafe { GetLastError() }
+                );
                 return Err(unsafe { GetLastError() });
             }
 
@@ -207,15 +212,21 @@ impl Profile {
                 // https://github.com/mozilla/positron/blob/master/security/sandbox/chromium-shim/base/win/sdkdecls.h#L32
                 const PROC_THREAD_ATTRIBUTE_NUMBER: usize = 0x0000FFFF;
                 const PROC_THREAD_ATTRIBUTE_INPUT: usize = 0x00020000;
-                UpdateProcThreadAttribute(attrBuf.as_mut_ptr() as LPPROC_THREAD_ATTRIBUTE_LIST, 
-                                          0, 
-                                          9 & PROC_THREAD_ATTRIBUTE_NUMBER | PROC_THREAD_ATTRIBUTE_INPUT, // PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES
-                                          mem::transmute::<PSECURITY_CAPABILITIES, LPVOID>(&mut capabilities), 
-                                          mem::size_of::<SECURITY_CAPABILITIES>() as SIZE_T, 
-                                          NULL as PVOID, 
-                                          NULL as PSIZE_T) } == 0 {
-                debug!("UpdateProcThreadAttribute failed: GLE={:}", unsafe { GetLastError() });
-                return Err(unsafe { GetLastError() })
+                UpdateProcThreadAttribute(
+                    attrBuf.as_mut_ptr() as LPPROC_THREAD_ATTRIBUTE_LIST,
+                    0,
+                    9 & PROC_THREAD_ATTRIBUTE_NUMBER | PROC_THREAD_ATTRIBUTE_INPUT, // PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES
+                    mem::transmute::<PSECURITY_CAPABILITIES, LPVOID>(&mut capabilities),
+                    mem::size_of::<SECURITY_CAPABILITIES>() as SIZE_T,
+                    NULL as PVOID,
+                    NULL as PSIZE_T,
+                )
+            } == 0
+            {
+                debug!("UpdateProcThreadAttribute failed: GLE={:}", unsafe {
+                    GetLastError()
+                });
+                return Err(unsafe { GetLastError() });
             }
 
             si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as DWORD;
@@ -240,17 +251,16 @@ impl Profile {
                 return Err(unsafe { GetLastError() });
             }
 
-            if stdin != stdout && unsafe { SetHandleInformation(stdout, HANDLE_FLAG_INHERIT, 1) } == 0 {
+            if stdin != stdout
+                && unsafe { SetHandleInformation(stdout, HANDLE_FLAG_INHERIT, 1) } == 0
+            {
                 return Err(unsafe { GetLastError() });
             }
         }
 
         si.StartupInfo.wShowWindow = SW_HIDE as WORD;
 
-        let currentDir: Vec<u16> = OsStr::new(dirPath)
-            .encode_wide()
-            .chain(once(0))
-            .collect();
+        let currentDir: Vec<u16> = OsStr::new(dirPath).encode_wide().chain(once(0)).collect();
         let cmdLine: Vec<u16> = OsStr::new(&self.childPath)
             .encode_wide()
             .chain(once(0))
@@ -263,19 +273,21 @@ impl Profile {
         };
 
         if unsafe {
-               CreateProcessW(cmdLine.as_ptr(),
-                              NULL as LPWSTR,
-                              NULL as LPSECURITY_ATTRIBUTES,
-                              NULL as LPSECURITY_ATTRIBUTES,
-                              1,
-                              dwCreationFlags,
-                              NULL as LPVOID,
-                              currentDir.as_ptr(),
-                              mem::transmute::<LPSTARTUPINFOEXW, LPSTARTUPINFOW>(&mut si),
-                              &mut pi)
-           } == 0 {
-            println!("CreateProcess failed: GLE={:}",
-                     unsafe { GetLastError() });
+            CreateProcessW(
+                cmdLine.as_ptr(),
+                NULL as LPWSTR,
+                NULL as LPSECURITY_ATTRIBUTES,
+                NULL as LPSECURITY_ATTRIBUTES,
+                1,
+                dwCreationFlags,
+                NULL as LPVOID,
+                currentDir.as_ptr(),
+                mem::transmute::<LPSTARTUPINFOEXW, LPSTARTUPINFOW>(&mut si),
+                &mut pi,
+            )
+        } == 0
+        {
+            println!("CreateProcess failed: GLE={:}", unsafe { GetLastError() });
             return Err(unsafe { GetLastError() });
         }
 

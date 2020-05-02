@@ -19,8 +19,8 @@ mod tests;
 use asw::HasRawHandle;
 
 use winapi::um::winnt::{GENERIC_EXECUTE, GENERIC_READ, HANDLE, PSID};
-use windows_acl::acl::{ACL, AceType};
-use windows_acl::helper::{string_to_sid};
+use windows_acl::acl::{AceType, ACL};
+use windows_acl::helper::string_to_sid;
 
 use std::path::{Path, PathBuf};
 use std::process;
@@ -28,12 +28,16 @@ use std::process;
 #[allow(unused_imports)]
 use log::*;
 
-use clap::{Arg, App, SubCommand, ArgMatches};
+use clap::{App, Arg, ArgMatches, SubCommand};
 
 fn build_version() -> String {
     let prebuilt_ver = env!("VERGEN_SEMVER");
     if prebuilt_ver.is_empty() {
-        return format!("build-{} ({})", env!("VERGEN_SHA_SHORT"), env!("VERGEN_BUILD_DATE"));
+        return format!(
+            "build-{} ({})",
+            env!("VERGEN_SHA_SHORT"),
+            env!("VERGEN_BUILD_DATE")
+        );
     }
 
     prebuilt_ver.to_string()
@@ -54,21 +58,30 @@ pub fn add_sid_profile_entry(path: &Path, string_sid: &str, mask: u32) -> bool {
                 return false;
             }
 
-            acl.remove(sid.as_ptr() as PSID, Some(AceType::AccessAllow), None).unwrap_or_else(|code| { 
-                error!("Failed to remove existing entry for sid={:?}: error={}", string_sid, code);
-                0
-            });
+            acl.remove(sid.as_ptr() as PSID, Some(AceType::AccessAllow), None)
+                .unwrap_or_else(|code| {
+                    error!(
+                        "Failed to remove existing entry for sid={:?}: error={}",
+                        string_sid, code
+                    );
+                    0
+                });
 
-            if !acl.allow(sid.as_ptr() as PSID, true, mask).unwrap_or_else(|code| {
-                   error!("Failed to add access allowed entry: error={}", code);
-                   false
-               }) {
+            if !acl
+                .allow(sid.as_ptr() as PSID, true, mask)
+                .unwrap_or_else(|code| {
+                    error!("Failed to add access allowed entry: error={}", code);
+                    false
+                })
+            {
                 return false;
             }
-
-        },
+        }
         Err(code) => {
-            error!("Failed to get ACL from {:?} while adding ACL entry: error={}", path, code);
+            error!(
+                "Failed to get ACL from {:?} while adding ACL entry: error={}",
+                path, code
+            );
             return false;
         }
     }
@@ -100,13 +113,13 @@ fn do_run(matches: &ArgMatches) {
     let profile_name = matches.value_of("name").unwrap();
 
     // NOTE: Will special unicode paths mess up this unwrap()?
-    let mut profile = match appcontainer::Profile::new(profile_name,
-                                                       child_path.to_str().unwrap()) {
+    let mut profile = match appcontainer::Profile::new(profile_name, child_path.to_str().unwrap()) {
         Ok(x) => x,
         Err(x) => {
-            error!("Failed to create AppContainer profile for {:}: error={:}",
-                   profile_name,
-                   x);
+            error!(
+                "Failed to create AppContainer profile for {:}: error={:}",
+                profile_name, x
+            );
             process::exit(-1);
         }
     };
@@ -114,25 +127,33 @@ fn do_run(matches: &ArgMatches) {
     info!("  sid = {:}", profile.sid);
 
     profile.enable_outbound_network(matches.is_present("outbound"));
-    info!("AppContainer.enable_outbound_network_conn = {:}",
-          matches.is_present("outbound"));
+    info!(
+        "AppContainer.enable_outbound_network_conn = {:}",
+        matches.is_present("outbound")
+    );
 
     profile.enable_debug(matches.is_present("debug"));
-    info!("AppContainer.enable_debug = {:}",
-          matches.is_present("debug"));
+    info!(
+        "AppContainer.enable_debug = {:}",
+        matches.is_present("debug")
+    );
 
     let mut key_dir_path = key_path.clone();
     key_dir_path.pop();
 
     if !add_sid_profile_entry(&key_dir_path, &profile.sid, GENERIC_READ | GENERIC_EXECUTE) {
-        error!("Failed to add AppContainer profile ACL entry into {:?}",
-               key_dir_path);
+        error!(
+            "Failed to add AppContainer profile ACL entry into {:?}",
+            key_dir_path
+        );
         process::exit(-1);
     }
 
     if !add_sid_profile_entry(&key_path, &profile.sid, GENERIC_READ) {
-        error!("Failed to add AppContainer profile ACL entry into {:?}",
-               key_path);
+        error!(
+            "Failed to add AppContainer profile ACL entry into {:?}",
+            key_path
+        );
         process::exit(-1);
     }
 
@@ -158,9 +179,11 @@ fn do_run(matches: &ArgMatches) {
                     if let Some((client, addr)) = raw_client {
                         let raw_socket = client.raw_handle();
 
-                        match profile.launch(raw_socket as HANDLE,
-                                             raw_socket as HANDLE,
-                                             key_dir_abspath.to_str().unwrap()) {
+                        match profile.launch(
+                            raw_socket as HANDLE,
+                            raw_socket as HANDLE,
+                            key_dir_abspath.to_str().unwrap(),
+                        ) {
                             Ok(x) => {
                                 info!("     Launched new process with handle {:?} with current_dir = {:?}",
                                       x.raw,
@@ -191,18 +214,28 @@ pub fn remove_sid_acl_entry(path: &Path, string_sid: &str) -> bool {
         Ok(mut acl) => {
             let sid = string_to_sid(string_sid).unwrap_or_default();
             if sid.capacity() == 0 {
-                error!("Failed to convert string SID into SID: sid={:?}", string_sid);
+                error!(
+                    "Failed to convert string SID into SID: sid={:?}",
+                    string_sid
+                );
                 return false;
             }
 
             let result = acl.remove(sid.as_ptr() as PSID, Some(AceType::AccessAllow), None);
             if result.is_err() {
-                error!("Failed to remove ACL for sid={:?}: error={}", string_sid, result.unwrap_err());
+                error!(
+                    "Failed to remove ACL for sid={:?}: error={}",
+                    string_sid,
+                    result.unwrap_err()
+                );
                 return false;
             }
-        },
+        }
         Err(code) => {
-            error!("Failed to get ACL from path while removing ACL entry: path={:?}, error={}", path, code);
+            error!(
+                "Failed to get ACL from path while removing ACL entry: path={:?}, error={}",
+                path, code
+            );
             return false;
         }
     }
@@ -232,9 +265,10 @@ fn do_clean(matches: &ArgMatches) {
         let profile = match appcontainer::Profile::new(profile_name, key_path.to_str().unwrap()) {
             Ok(x) => x,
             Err(x) => {
-                error!("Failed to get profile information for \"{:}\": error={:}",
-                       profile_name,
-                       x);
+                error!(
+                    "Failed to get profile information for \"{:}\": error={:}",
+                    profile_name, x
+                );
                 process::exit(-1);
             }
         };
@@ -244,9 +278,10 @@ fn do_clean(matches: &ArgMatches) {
             error!("Failed to remove entry for key_path={:?}", key_path);
         }
 
-        info!("Removing ACL entry for {:} in {:?}",
-              profile.sid,
-              key_dir_path);
+        info!(
+            "Removing ACL entry for {:} in {:?}",
+            profile.sid, key_dir_path
+        );
         if !remove_sid_acl_entry(&key_dir_path, &profile.sid) {
             error!("Failed to remove entry for key_dir_path={:?}", key_dir_path);
         }

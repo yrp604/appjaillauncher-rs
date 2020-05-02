@@ -1,22 +1,22 @@
 #![allow(non_snake_case)]
 
-use crate::appcontainer::{Profile};
 use super::{add_sid_profile_entry, remove_sid_acl_entry};
+use crate::appcontainer::Profile;
 
 use winapi::shared::minwindef::{DWORD, LPVOID};
-use winapi::shared::ntdef::{NULL};
-use winapi::um::fileapi::{ReadFile};
-use winapi::um::handleapi::{INVALID_HANDLE_VALUE};
+use winapi::shared::ntdef::NULL;
+use winapi::um::fileapi::ReadFile;
+use winapi::um::handleapi::INVALID_HANDLE_VALUE;
 use winapi::um::minwinbase::{LPOVERLAPPED, SECURITY_ATTRIBUTES};
-use winapi::um::namedpipeapi::{CreatePipe};
+use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::{GetExitCodeProcess, TerminateProcess};
-use winapi::um::synchapi::{WaitForSingleObject};
+use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
 use winapi::um::winnt::{GENERIC_EXECUTE, GENERIC_READ, HANDLE};
 
 use std::env;
 use std::mem;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 #[cfg(test)]
 const KEY_READ_MASK: u32 = 0x00000020;
@@ -65,9 +65,9 @@ impl AclOp {
         }
 
         Some(AclOp {
-                 path: PathBuf::from(path),
-                 sid: sid.to_string(),
-             })
+            path: PathBuf::from(path),
+            sid: sid.to_string(),
+        })
     }
 }
 
@@ -114,14 +114,18 @@ fn test_sandbox_key_read() {
         assert!(fileAclOp.is_some());
 
         println!("Testing with default privileges");
-        let launch_result = profile.launch(INVALID_HANDLE_VALUE,
-                                           INVALID_HANDLE_VALUE,
-                                           dir_path.to_str().unwrap());
+        let launch_result = profile.launch(
+            INVALID_HANDLE_VALUE,
+            INVALID_HANDLE_VALUE,
+            dir_path.to_str().unwrap(),
+        );
         assert!(launch_result.is_ok());
 
         let hProcess = launch_result.unwrap();
-        assert_eq!(unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
-                   WAIT_OBJECT_0);
+        assert_eq!(
+            unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
+            WAIT_OBJECT_0
+        );
 
         let mut dwExitCode: DWORD = 0 as DWORD;
         assert!(unsafe { GetExitCodeProcess(hProcess.raw, &mut dwExitCode) } != 0);
@@ -194,14 +198,18 @@ fn test_appcontainer() {
 
         {
             println!("Testing with default privileges");
-            let launch_result = profile.launch(INVALID_HANDLE_VALUE,
-                                               INVALID_HANDLE_VALUE,
-                                               dir_path.to_str().unwrap());
+            let launch_result = profile.launch(
+                INVALID_HANDLE_VALUE,
+                INVALID_HANDLE_VALUE,
+                dir_path.to_str().unwrap(),
+            );
             assert!(launch_result.is_ok());
 
             let hProcess = launch_result.unwrap();
-            assert_eq!(unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
-                       WAIT_OBJECT_0);
+            assert_eq!(
+                unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
+                WAIT_OBJECT_0
+            );
 
             let mut dwExitCode: DWORD = 0 as DWORD;
             assert!(unsafe { GetExitCodeProcess(hProcess.raw, &mut dwExitCode) } != 0);
@@ -218,14 +226,18 @@ fn test_appcontainer() {
 
         {
             println!("Testing without outbound network connections");
-            let launch_result = profile.launch(INVALID_HANDLE_VALUE,
-                                               INVALID_HANDLE_VALUE,
-                                               dir_path.to_str().unwrap());
+            let launch_result = profile.launch(
+                INVALID_HANDLE_VALUE,
+                INVALID_HANDLE_VALUE,
+                dir_path.to_str().unwrap(),
+            );
             assert!(launch_result.is_ok());
 
             let hProcess = launch_result.unwrap();
-            assert_eq!(unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
-                       WAIT_OBJECT_0);
+            assert_eq!(
+                unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
+                WAIT_OBJECT_0
+            );
 
             let mut dwExitCode: DWORD = 0 as DWORD;
             assert!(unsafe { GetExitCodeProcess(hProcess.raw, &mut dwExitCode) } != 0);
@@ -245,14 +257,18 @@ fn test_appcontainer() {
 
         {
             println!("Testing debug mode");
-            let launch_result = profile.launch(INVALID_HANDLE_VALUE,
-                                               INVALID_HANDLE_VALUE,
-                                               dir_path.to_str().unwrap());
+            let launch_result = profile.launch(
+                INVALID_HANDLE_VALUE,
+                INVALID_HANDLE_VALUE,
+                dir_path.to_str().unwrap(),
+            );
             assert!(launch_result.is_ok());
 
             let hProcess = launch_result.unwrap();
-            assert_eq!(unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
-                       WAIT_OBJECT_0);
+            assert_eq!(
+                unsafe { WaitForSingleObject(hProcess.raw, INFINITE) },
+                WAIT_OBJECT_0
+            );
 
             let mut dwExitCode: DWORD = 0 as DWORD;
             assert!(unsafe { GetExitCodeProcess(hProcess.raw, &mut dwExitCode) } != 0);
@@ -302,12 +318,8 @@ fn test_stdout_redirect() {
     };
 
     println!("Creating stdin/stdout anonymous pipes");
-    assert!(unsafe {
-                CreatePipe(&mut rChildStdout, &mut wChildStdout, &mut saAttr, 0)
-            } != 0);
-    assert!(unsafe {
-                CreatePipe(&mut rChildStdin, &mut wChildStdin, &mut saAttr, 0)
-            } != 0);
+    assert!(unsafe { CreatePipe(&mut rChildStdout, &mut wChildStdout, &mut saAttr, 0) } != 0);
+    assert!(unsafe { CreatePipe(&mut rChildStdin, &mut wChildStdin, &mut saAttr, 0) } != 0);
 
     {
         println!("Launching AppContainer with redirected stdin/stdout/stderr");
@@ -320,13 +332,17 @@ fn test_stdout_redirect() {
         let mut buffer: Vec<u8> = Vec::with_capacity(37);
 
         println!("Reading 37 bytes for testing");
-        assert!(unsafe {
-                    ReadFile(rChildStdout,
-                             buffer.as_mut_ptr() as LPVOID,
-                             37,
-                             &mut dwRead,
-                             mem::transmute::<usize, LPOVERLAPPED>(0))
-                } != 0);
+        assert!(
+            unsafe {
+                ReadFile(
+                    rChildStdout,
+                    buffer.as_mut_ptr() as LPVOID,
+                    37,
+                    &mut dwRead,
+                    mem::transmute::<usize, LPOVERLAPPED>(0),
+                )
+            } != 0
+        );
 
         let data;
         unsafe {

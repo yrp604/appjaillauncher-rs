@@ -1,5 +1,5 @@
 use winapi::shared::ntdef::{HANDLE, NULL};
-use winapi::um::handleapi::{INVALID_HANDLE_VALUE, CloseHandle};
+use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
 
 pub struct HandlePtr {
     pub raw: HANDLE,
@@ -7,7 +7,7 @@ pub struct HandlePtr {
 
 impl HandlePtr {
     pub fn new(ptr: HANDLE) -> HandlePtr {
-        HandlePtr { raw: ptr}
+        HandlePtr { raw: ptr }
     }
 }
 
