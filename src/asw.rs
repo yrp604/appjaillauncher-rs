@@ -7,7 +7,6 @@
 #[allow(unused_imports)]
 use log::*;
 
-use libc;
 use widestring::WideString;
 use std::mem;
 use std::ffi::OsStr;
@@ -49,7 +48,7 @@ pub trait HasRawHandle {
 
 impl TcpClient {
     fn from_accept(socket: SOCKET) -> TcpClient {
-        TcpClient { socket: socket }
+        TcpClient { socket }
     }
 }
 
@@ -112,7 +111,7 @@ impl TcpServer {
         }
 
         let mut server = TcpServer {
-            socket: socket,
+            socket,
             eventList: Vec::new(),
             hAccept: unsafe {
                 CreateEventW(0 as LPSECURITY_ATTRIBUTES, 0, 0, NULL as LPCWSTR)
@@ -223,14 +222,15 @@ impl TcpServer {
                                      0xffffffff as DWORD,
                                      0)
         };
-        if ret == WAIT_OBJECT_0 {
-            return TcpServerEvent::Accept;
-        } else if ret > WAIT_OBJECT_0 {
-            let item = ret - WAIT_OBJECT_0;
-            return TcpServerEvent::Token(item as usize);
-        }
 
-        TcpServerEvent::Error
+        match ret {
+            WAIT_OBJECT_0 => TcpServerEvent::Accept,
+            _ if ret > WAIT_OBJECT_0 => {
+                let item = ret - WAIT_OBJECT_0;
+                TcpServerEvent::Token(item as usize)
+            }
+            _ => TcpServerEvent::Error,
+        }
     }
 }
 

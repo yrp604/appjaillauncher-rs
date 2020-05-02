@@ -32,11 +32,11 @@ use clap::{Arg, App, SubCommand, ArgMatches};
 
 fn build_version() -> String {
     let prebuilt_ver = env!("VERGEN_SEMVER");
-    if prebuilt_ver.len() == 0 {
+    if prebuilt_ver.is_empty() {
         return format!("build-{} ({})", env!("VERGEN_SHA_SHORT"), env!("VERGEN_BUILD_DATE"));
     }
 
-    format!("{}", prebuilt_ver)
+    prebuilt_ver.to_string()
 }
 
 pub fn add_sid_profile_entry(path: &Path, string_sid: &str, mask: u32) -> bool {
@@ -48,7 +48,7 @@ pub fn add_sid_profile_entry(path: &Path, string_sid: &str, mask: u32) -> bool {
 
     match ACL::from_file_path(string_path, false) {
         Ok(mut acl) => {
-            let sid = string_to_sid(string_sid).unwrap_or(Vec::new());
+            let sid = string_to_sid(string_sid).unwrap_or_default();
             if sid.capacity() == 0 {
                 error!("Failed to convert string SID to SID: sid={:?}", string_sid);
                 return false;
@@ -155,8 +155,7 @@ fn do_run(matches: &ArgMatches) {
             match server.get_event() {
                 asw::TcpServerEvent::Accept => {
                     let raw_client = server.accept();
-                    if raw_client.is_some() {
-                        let (client, addr) = raw_client.unwrap();
+                    if let Some((client, addr)) = raw_client {
                         let raw_socket = client.raw_handle();
 
                         match profile.launch(raw_socket as HANDLE,
@@ -190,7 +189,7 @@ pub fn remove_sid_acl_entry(path: &Path, string_sid: &str) -> bool {
 
     match ACL::from_file_path(string_path, false) {
         Ok(mut acl) => {
-            let sid = string_to_sid(string_sid).unwrap_or(Vec::new());
+            let sid = string_to_sid(string_sid).unwrap_or_default();
             if sid.capacity() == 0 {
                 error!("Failed to convert string SID into SID: sid={:?}", string_sid);
                 return false;

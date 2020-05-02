@@ -240,10 +240,8 @@ impl Profile {
                 return Err(unsafe { GetLastError() });
             }
 
-            if stdin != stdout {
-                if unsafe { SetHandleInformation(stdout, HANDLE_FLAG_INHERIT, 1) } == 0 {
-                    return Err(unsafe { GetLastError() });
-                }
+            if stdin != stdout && unsafe { SetHandleInformation(stdout, HANDLE_FLAG_INHERIT, 1) } == 0 {
+                return Err(unsafe { GetLastError() });
             }
         }
 
