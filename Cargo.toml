@@ -17,5 +17,5 @@ log = "0.4"
 flexi_logger = "0.15"
 windows-acl = "0.2"
 winapi = { version = "0.3", features = [
-    'synchapi', 'userenv', 'winuser', 'ws2def', 'ws2tcpip', 'winsock2'
+    'namedpipeapi', 'synchapi', 'userenv', 'winuser', 'ws2def', 'ws2tcpip', 'winsock2'
 ]}
