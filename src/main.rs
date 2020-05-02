@@ -5,13 +5,10 @@ extern crate env_logger;
 extern crate field_offset;
 extern crate libc;
 
-#[macro_use]
 extern crate log;
 extern crate widestring;
 extern crate winapi;
 extern crate windows_acl;
-
-include!(concat!(env!("OUT_DIR"), "/version.rs"));
 
 mod appcontainer;
 mod asw;
@@ -35,9 +32,9 @@ use log::*;
 use clap::{Arg, App, SubCommand, ArgMatches};
 
 fn build_version() -> String {
-    let prebuilt_ver = semver();
+    let prebuilt_ver = env!("VERGEN_SEMVER");
     if prebuilt_ver.len() == 0 {
-        return format!("build-{} ({})", short_sha(), short_now());
+        return format!("build-{} ({})", env!("VERGEN_SHA_SHORT"), env!("VERGEN_BUILD_DATE"));
     }
 
     format!("{}", prebuilt_ver)

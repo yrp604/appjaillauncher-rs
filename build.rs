@@ -1,9 +1,9 @@
 extern crate vergen;
 
-use vergen::*;
+use vergen::{ConstantsFlags, generate_cargo_keys};
 
 fn main() {
-    let mut flags = OutputFns::all();
-    flags.toggle(NOW);
-    assert!(vergen(flags).is_ok());
+    let mut flags = ConstantsFlags::all();
+    flags.toggle(ConstantsFlags::BUILD_TIMESTAMP);
+    generate_cargo_keys(flags).expect("Unable to generate the cargo keys!");
 }

@@ -5,15 +5,15 @@ authors = ["yying <andy@trailofbits.com>"]
 build = "build.rs"
 
 [build-dependencies]
-vergen = "0.1.1"
+vergen = "3"
 
 [dependencies]
-field-offset = "0.1.1"
-libc = "0.2.22"
-widestring = "0.2.2"
-tempdir = "0.3.7"
-clap = "2.24.2"
-log = "0.3.8"
+field-offset = "0.3"
+libc = "0.2"
+widestring = "0.4"
+tempdir = "0.3"
+clap = "2"
+log = "0.4"
 env_logger = "0.4.3"
 windows-acl = "0.2"
 winapi = { version = "0.3", features = [
