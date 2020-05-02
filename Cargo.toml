@@ -3,6 +3,7 @@ name = "appjaillauncher-rs"
 version = "0.2.0"
 authors = ["yying <andy@trailofbits.com>"]
 build = "build.rs"
+edition = "2018"
 
 [build-dependencies]
 vergen = "3"

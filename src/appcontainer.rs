@@ -33,7 +33,7 @@ use winapi::um::winuser::{SW_HIDE};
 
 use windows_acl::helper::{string_to_sid, sid_to_string};
 
-use utils::{HandlePtr};
+use crate::utils::{HandlePtr};
 
 use std::path::Path;
 use std::ffi::OsStr;

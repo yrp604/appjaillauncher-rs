@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use appcontainer::{Profile};
+use crate::appcontainer::{Profile};
 use super::{add_sid_profile_entry, remove_sid_acl_entry};
 
 use winapi::shared::minwindef::{DWORD, LPVOID};
